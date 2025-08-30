@@ -11,8 +11,8 @@ route:
 receivers:
   - name: 'default-receiver'
     email_configs:
-      - to: 'your-email@example.com'
-        from: 'alertmanager@example.com'
-        smarthost: 'smtp.example.com:587'
-        auth_username: 'your-username'
-        auth_password: 'your-password'
+      - to: '${ALERTMANAGER_EMAIL_TO}'
+        from: '${ALERTMANAGER_EMAIL_FROM}'
+        smarthost: '${ALERTMANAGER_SMTP_HOST}:${ALERTMANAGER_SMTP_PORT}'
+        auth_username: '${ALERTMANAGER_SMTP_USER}'
+        auth_password: '${ALERTMANAGER_SMTP_PASSWORD}'

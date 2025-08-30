@@ -24,6 +24,8 @@ services:
     volumes:
       - ../prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
       - ../prometheus/rules:/etc/alertmanager/rules
+    env_file:
+      - ../.env
     restart: unless-stopped
 
   grafana:
