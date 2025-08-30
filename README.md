@@ -1,153 +1,178 @@
+<p align="center">
+  <a href="https://github.com/boniyeamincse/-DevOps-Centralized-Monitoring-System">
+    <img src="https://user-images.githubusercontent.com/80245310/214715097-3239b37c-6a84-4352-9b33-1c33013319a5.png" alt="Logo" width="80" height="80">
+  </a>
+</p>
 
-# DevOps Centralized Monitoring System
+<h1 align="center">
+  DevOps Centralized Monitoring System
+</h1>
 
-Here’s a **starter `README.md`** for your DevOps Centralized Monitoring System project:
+<p align="center">
+    A production-ready, open-source monitoring stack for Linux & Windows servers.
+    <br />
+    <a href="/docs/architecture.md"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/boniyeamincse/-DevOps-Centralized-Monitoring-System/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/boniyeamincse/-DevOps-Centralized-Monitoring-System/issues">Request Feature</a>
+</p>
 
-```markdown
-# DevOps Centralized Monitoring System
-
-A **centralized monitoring solution** for Linux and Windows servers.  
-It collects **metrics, logs, and alerts** into unified dashboards to help DevOps and Infosec teams proactively monitor infrastructure and applications.
-
----
-
-## 🚀 Features
-
-- **Server Resource Monitoring**
-  - CPU, memory, disk usage, network throughput
-  - Linux via Node Exporter, Windows via Windows Exporter
-  - Extended metrics and logs via Metricbeat / Filebeat
-
-- **Cross-Platform Support**
-  - Works on both Linux and Windows
-  - Simple automation scripts for agent installation
-
-- **Centralized Dashboards**
-  - Grafana dashboards for CPU, memory, disk, and network
-  - Kibana dashboards for log analysis
-  - Fully customizable panels
-
-- **Alerting & Notifications**
-  - Real-time alerts for high CPU, memory, or disk usage
-  - Integrates with Alertmanager or Zabbix
-  - Notification channels: email, Slack, Teams, etc.
-
-- **Log Aggregation (optional)**
-  - Centralized logging with **Elasticsearch + Logstash + Kibana (ELK)**
-  - Filebeat / Metricbeat agents ship logs & system events
-
-- **Automation & DevOps Integration**
-  - Scripts for agent install, dashboard updates, and config backup
-  - Optional Dockerized deployment for quick start
-  - Easily extend with custom exporters or integrations
-
-- **Open-Source & Scalable**
-  - 100% open-source stack
-  - Scales to hundreds of servers
+<p align="center">
+  <a href="https://github.com/boniyeamincse/-DevOps-Centralized-Monitoring-System/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/boniyeamincse/-DevOps-Centralized-Monitoring-System?style=for-the-badge" alt="License">
+  </a>
+  <a href="https://github.com/boniyeamincse/-DevOps-Centralized-Monitoring-System/stargazers">
+    <img src="https://img.shields.io/github/stars/boniyeamincse/-DevOps-Centralized-Monitoring-System?style=for-the-badge" alt="Stargazers">
+  </a>
+  <a href="https://github.com/boniyeamincse/-DevOps-Centralized-Monitoring-System/network/members">
+    <img src="https://img.shields.io/github/forks/boniyeamincse/-DevOps-Centralized-Monitoring-System?style=for-the-badge" alt="Forks">
+  </a>
+  <a href="https://github.com/boniyeamincse/-DevOps-Centralized-Monitoring-System/issues">
+    <img src="https://img.shields.io/github/issues/boniyeamincse/-DevOps-Centralized-Monitoring-System?style=for-the-badge" alt="Issues">
+  </a>
+</p>
 
 ---
 
-## 📂 Project Structure
+## 🚀 Overview
 
-```
+This project provides a robust, all-in-one monitoring solution designed for DevOps and Infrastructure teams. It leverages a powerful stack of open-source tools to provide real-time metrics, logs, and alerts for both **Linux and Windows** environments.
 
-devops-monitoring/
-├── README.md
-├── docs/                # Documentation (installation, architecture, dashboards, etc.)
-├── prometheus/          # Prometheus config & alert rules
-├── grafana/             # Grafana dashboards & provisioning
-├── zabbix/              # Optional Zabbix configs
-├── elk/                 # Elasticsearch, Logstash, Kibana, Beats
-├── scripts/             # Automation (agents, backups, dashboard updates)
-├── docker/              # Docker Compose + Dockerfiles
-├── logs/                # Local setup logs
-└── tests/               # Test scripts (connectivity, alerts, resource simulation)
+The entire stack is containerized using **Docker Compose**, making it easy to deploy, manage, and scale.
 
-````
+### ✨ Features
+
+-   **Unified Monitoring**: Centralized dashboards for infrastructure and application monitoring.
+-   **Metrics & Logging**: Collects both time-series metrics (Prometheus) and logs (ELK Stack).
+-   **Cross-Platform**: Supports Linux (via Node Exporter) and Windows (via Windows Exporter).
+-   **Alerting**: Pre-configured alerting rules for common issues (CPU, Memory, Disk).
+-   **Containerized**: Fully containerized with Docker Compose for easy deployment.
+-   **Scalable**: Designed to be scalable from a single server to hundreds.
+-   **Customizable**: Easily extend with new exporters, dashboards, and alert rules.
 
 ---
 
-## 🛠️ Getting Started
+## 🛠️ Tech Stack
 
-### 1. Clone the repo
-```bash
-git clone <your-repo-url>
-cd devops-monitoring
-````
+| Technology      | Description                               |
+| --------------- | ----------------------------------------- |
+| **Prometheus**  | Time-series database for metrics          |
+| **Grafana**     | Visualization and dashboarding            |
+| **Alertmanager**| Alerting and notification routing         |
+| **ELK Stack**   | Elasticsearch, Logstash, and Kibana for logging |
+| **Docker**      | Containerization                          |
+| **Exporters**   | Node Exporter (Linux) & Windows Exporter  |
+| **Beats**       | Filebeat & Metricbeat for log/metric shipping |
 
-### 2. Install exporters on servers
+---
 
-* Linux: [Node Exporter](https://github.com/prometheus/node_exporter)
-* Windows: [Windows Exporter](https://github.com/prometheus-community/windows_exporter)
-* Optional: Metricbeat/Filebeat for extended metrics and logs
+## 🏛️ Architecture
 
-Or use the helper script:
+The architecture is designed to be modular and scalable.
 
-```bash
-sudo ./scripts/install_agents.sh all
 ```
-
-### 3. Run the monitoring stack
-
-Using Docker:
-
-```bash
-cd docker
-docker compose up -d
-```
-
-Services exposed:
-
-* Prometheus → [http://localhost:9090](http://localhost:9090)
-* Alertmanager → [http://localhost:9093](http://localhost:9093)
-* Grafana → [http://localhost:3000](http://localhost:3000) (admin/admin)
-* Elasticsearch → [http://localhost:9200](http://localhost:9200)
-* Kibana → [http://localhost:5601](http://localhost:5601)
-
-### 4. Import dashboards
-
-Grafana dashboards are provisioned automatically.
-If needed, run:
-
-```bash
-./scripts/update_dashboards.sh
-```
-
-### 5. Test setup
-
-```bash
-./tests/connectivity_test.sh
-./tests/alert_test.sh list
-./tests/resource_simulation.sh cpu --duration 60
+      +-----------------+      +------------------+      +-----------------+
+      |  Linux Servers  |      | Windows Servers  |      |   Applications  |
+      +-----------------+      +------------------+      +-----------------+
+              |                        |                         |
+      +-------v--------+      +--------v---------+      +--------v--------+
+      |  Node Exporter  |      | Windows Exporter |      |   Custom Exporters |
+      +-----------------+      +------------------+      +-----------------+
+              |                        |                         |
+              +------------------------+-------------------------+
+                                       |
+                               +-------v--------+
+                               |   Prometheus   |
+                               +-------+--------+
+                                       |
+          +----------------------------+----------------------------+
+          |                                                         |
++---------v----------+                                    +---------v----------+
+|    Alertmanager    |                                    |      Grafana       |
++---------+----------+                                    +--------------------+
+          |
++---------v----------+
+|   Notifications    |
+| (Slack, Email, etc)|
++--------------------+
 ```
 
 ---
 
-## 📖 Documentation
+## 🏁 Getting Started
 
-See the [`docs/`](./docs) directory for:
+### Prerequisites
 
-* `architecture.md` – system architecture overview
-* `installation.md` – step-by-step install guide
-* `agents.md` – details on Node Exporter / Windows Exporter / Metricbeat
-* `alerting.md` – alert setup & notification integration
-* `dashboards.md` – Grafana & Kibana dashboards
+-   [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+-   `git`
+-   `make` (optional, for convenience)
+
+### Installation
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/boniyeamincse/-DevOps-Centralized-Monitoring-System.git
+    cd DevOps-Centralized-Monitoring-System
+    ```
+
+2.  **Configure Environment Variables:**
+
+    Create a `.env` file from the example file and customize it as needed.
+
+    ```bash
+    cp .env.example .env
+    ```
+
+3.  **Start the Stack:**
+
+    ```bash
+    docker-compose up -d
+    ```
+
+4.  **Access the Services:**
+
+    -   **Grafana**: `http://localhost:3000` (default user/pass: `admin/admin`)
+    -   **Prometheus**: `http://localhost:9090`
+    -   **Alertmanager**: `http://localhost:9093`
+    -   **Kibana**: `http://localhost:5601`
+    -   **Elasticsearch**: `http://localhost:9200`
 
 ---
 
-## 👥 Contact
+## ⚙️ Configuration
 
-For questions or contributions:
-**Boni Yeamin** – [boniyeamin.cse@gmail.com](mailto:boniyeamin.cse@gmail.com)
+All configuration files are located in their respective directories (`prometheus/`, `grafana/`, `elk/`, etc.).
+
+-   **Prometheus Targets**: Add your server IPs to `prometheus/targets/linux_targets.yml` or `prometheus/targets/windows_targets.yml`.
+-   **Alerting Rules**: Customize alerting rules in `prometheus/rules/`.
+-   **Grafana Dashboards**: Dashboards are automatically provisioned from the `grafana/dashboards/` directory.
+-   **ELK Pipeline**: Configure the Logstash pipeline in `elk/logstash/pipelines.conf`.
+
+---
+
+## 🤝 Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
 
 ---
 
 ## 📜 License
 
-This project is open-source under the MIT License.
-See [LICENSE](LICENSE) for details.
+Distributed under the MIT License. See `LICENSE` for more information.
 
-```
+---
 
-Do you want me to draft **`docs/architecture.md`** (with a text + diagram explanation of Prometheus, Grafana, ELK, exporters, agents, alerting flow) next?
-```
+## 📧 Contact
+
+Boni Yeamin - [boniyeamin.cse@gmail.com](mailto:boniyeamin.cse@gmail.com)
+
+Project Link: [https://github.com/boniyeamincse/-DevOps-Centralized-Monitoring-System](https://github.com/boniyeamincse/-DevOps-Centralized-Monitoring-System)
