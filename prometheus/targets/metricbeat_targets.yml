@@ -1,0 +1,4 @@
+- targets:
+    - "metricbeat:9168"
+  labels:
+    env: "production"
