@@ -1,0 +1,159 @@
+groups:
+  - name: general-health
+    rules:
+      # -------- Uptime ----------
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Target {{ $labels.instance }} is down"
+          description: "Prometheus has not scraped {{ $labels.instance }} for 2 minutes."
+          runbook_url: "https://your-runbook/instance-down"
+
+      # -------- CPU (Linux) ----------
+      - alert: HighCPUUsageLinux
+        expr: (100 - avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          os: linux
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }} (Linux)"
+          description: "5m avg CPU > 85%. Check processes, load, and recent deployments."
+          runbook_url: "https://your-runbook/cpu-high"
+
+      - alert: CriticalCPUUsageLinux
+        expr: (100 - avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 10m
+        labels:
+          severity: critical
+          os: linux
+        annotations:
+          summary: "CRITICAL CPU usage on {{ $labels.instance }} (Linux)"
+          description: "5m avg CPU > 95% for 10m. Immediate action recommended."
+          runbook_url: "https://your-runbook/cpu-critical"
+
+      # -------- CPU (Windows) ----------
+      - alert: HighCPUUsageWindows
+        expr: (100 - avg by (instance) (irate(windows_cpu_time_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          os: windows
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }} (Windows)"
+          description: "5m avg CPU > 85%. Check services, scheduled tasks, and updates."
+          runbook_url: "https://your-runbook/cpu-high"
+
+      - alert: CriticalCPUUsageWindows
+        expr: (100 - avg by (instance) (irate(windows_cpu_time_total{mode="idle"}[5m])) * 100) > 95
+        for: 10m
+        labels:
+          severity: critical
+          os: windows
+        annotations:
+          summary: "CRITICAL CPU usage on {{ $labels.instance }} (Windows)"
+          description: "5m avg CPU > 95% for 10m. Immediate action recommended."
+          runbook_url: "https://your-runbook/cpu-critical"
+
+      # -------- Load (Linux) ----------
+      # Load(5) per (v)CPU > 1.5 for 10m
+      - alert: HighSystemLoadLinux
+        expr: (node_load5 / count without (cpu, mode) (node_cpu_seconds_total{mode="system"})) > 1.5
+        for: 10m
+        labels:
+          severity: warning
+          os: linux
+        annotations:
+          summary: "High system load on {{ $labels.instance }} (Linux)"
+          description: "node_load5 per vCPU > 1.5 for 10m. Investigate CPU steal/waits and I/O."
+          runbook_url: "https://your-runbook/load-high"
+
+      # -------- Memory (Linux) ----------
+      - alert: MemoryPressureLinux
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          os: linux
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }} (Linux)"
+          description: "MemAvailable/MemTotal < 15% for 10m. Consider tuning apps or adding RAM."
+          runbook_url: "https://your-runbook/memory-pressure"
+
+      - alert: SwapInUseLinux
+        expr: (node_memory_SwapTotal_bytes > 0) and ((node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          os: linux
+        annotations:
+          summary: "Swap usage > 20% on {{ $labels.instance }} (Linux)"
+          description: "Sustained swap usage can indicate memory pressure and cause latency."
+          runbook_url: "https://your-runbook/swap-usage"
+
+      # -------- Memory (Windows) ----------
+      - alert: MemoryPressureWindows
+        expr: (1 - (avg by (instance) (windows_memory_available_bytes) / avg by (instance) (windows_cs_physical_memory_bytes))) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          os: windows
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }} (Windows)"
+          description: "Available/Total < 15% for 10m. Check working sets and memory leaks."
+          runbook_url: "https://your-runbook/memory-pressure"
+
+      # -------- Disk space (Linux) ----------
+      - alert: DiskSpaceLowLinux
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|devtmpfs|overlay|squashfs"}) * 100 < 10
+        for: 15m
+        labels:
+          severity: critical
+          os: linux
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }} (Linux)"
+          description: "Filesystem {{ $labels.mountpoint }} free < 10% for 15m."
+          runbook_url: "https://your-runbook/disk-space-low"
+
+      # -------- Disk inodes (Linux) ----------
+      - alert: DiskInodesLowLinux
+        expr: |
+          (node_filesystem_files_free{fstype!~"tmpfs|devtmpfs|overlay|squashfs"} / node_filesystem_files{fstype!~"tmpfs|devtmpfs|overlay|squashfs"}) * 100 < 10
+        for: 15m
+        labels:
+          severity: warning
+          os: linux
+        annotations:
+          summary: "Low inode availability on {{ $labels.instance }} (Linux)"
+          description: "Filesystem {{ $labels.mountpoint }} inodes free < 10%."
+          runbook_url: "https://your-runbook/inodes-low"
+
+      # -------- Disk space (Windows) ----------
+      - alert: DiskSpaceLowWindows
+        expr: |
+          (windows_logical_disk_free_bytes{volume!="_Total"} / windows_logical_disk_size_bytes{volume!="_Total"}) * 100 < 10
+        for: 15m
+        labels:
+          severity: critical
+          os: windows
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }} (Windows)"
+          description: "Logical disk {{ $labels.volume }} free < 10% for 15m."
+          runbook_url: "https://your-runbook/disk-space-low"
+
+      # -------- Filesystem read-only (Linux) ----------
+      - alert: FilesystemReadOnlyLinux
+        expr: node_filesystem_readonly == 1
+        for: 5m
+        labels:
+          severity: critical
+          os: linux
+        annotations:
+          summary: "Filesystem read-only on {{ $labels.instance }} (Linux)"
+          description: "Mountpoint {{ $labels.mountpoint }} is in read-only mode."
+          runbook_url: "https://your-runbook/fs-readonly"

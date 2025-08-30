@@ -1,0 +1,16 @@
+apiVersion: 1
+
+providers:
+  - name: "DevOps Monitoring"
+    orgId: 1
+    folder: "DevOps Monitoring"
+    folderUid: devops-monitoring
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      # Mount your repo folder `grafana/dashboards` into the container at this path.
+      path: /etc/grafana/provisioning/dashboards
+      # If you prefer env-based path:
+      # path: ${GF_DASHBOARD_PATH:/etc/grafana/provisioning/dashboards}

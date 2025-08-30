@@ -1,0 +1,12 @@
+server.name: kibana
+server.host: "0.0.0.0"
+server.publicBaseUrl: "http://kibana:5601"
+
+# Point to your Elasticsearch
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+
+# Security (enable if ES security is enabled)
+xpack.security.enabled: false
+
+# Misc
+telemetry.enabled: false

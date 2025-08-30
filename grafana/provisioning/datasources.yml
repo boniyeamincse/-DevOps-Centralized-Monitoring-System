@@ -1,0 +1,29 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: PROMDS
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST
+    editable: true
+
+  # Optional: enable if you use ELK for logs/metrics visualizations in Grafana
+  - name: Elasticsearch
+    uid: ELKDS
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    editable: true
+    jsonData:
+      esVersion: 8.0.0
+      timeField: "@timestamp"
+      interval: "10s"
+      logMessageField: "message"
+      maxConcurrentShardRequests: 5
+      tlsSkipVerify: true
+    secureJsonData: {}

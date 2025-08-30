@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 15s    # How often to scrape targets
+  evaluation_interval: 15s # How often to evaluate rules
+  scrape_timeout: 10s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "localhost:9093"   # Alertmanager endpoint (update if external)
+
+rule_files:
+  - "rules/*.yml"   # Load alerting rules from rules/ directory
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Linux servers (Node Exporter)
+  - job_name: "linux_servers"
+    file_sd_configs:
+      - files:
+          - "targets/linux_targets.yml"
+        refresh_interval: 1m
+
+  # Windows servers (Windows Exporter)
+  - job_name: "windows_servers"
+    file_sd_configs:
+      - files:
+          - "targets/windows_targets.yml"
+        refresh_interval: 1m
+
+  # Metricbeat (optional, for extra system/app metrics)
+  - job_name: "metricbeat"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["localhost:5066"]   # Change to Metricbeat hosts

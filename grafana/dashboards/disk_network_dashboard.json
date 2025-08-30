@@ -1,0 +1,92 @@
+{
+  "annotations": {"list": [{"builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"}, "enable": true, "hide": true, "name": "Annotations", "type": "dashboard"}]},
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Disk Space Used % (Linux)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "PROMDS"},
+      "fieldConfig": {"defaults": {"unit": "percent"}},
+      "targets": [
+        {
+          "expr": "(1 - (node_filesystem_avail_bytes{fstype!~\"tmpfs|devtmpfs|overlay|squashfs\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|devtmpfs|overlay|squashfs\"})) * 100",
+          "legendFormat": "{{instance}} {{mountpoint}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Disk Space Used % (Windows)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "PROMDS"},
+      "fieldConfig": {"defaults": {"unit": "percent"}},
+      "targets": [
+        {
+          "expr": "(1 - (windows_logical_disk_free_bytes{volume!=\"_Total\"} / windows_logical_disk_size_bytes{volume!=\"_Total\"})) * 100",
+          "legendFormat": "{{instance}} {{volume}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Disk IO (Reads/Writes per sec, Linux)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "PROMDS"},
+      "fieldConfig": {"defaults": {"unit": "ops"}},
+      "targets": [
+        {
+          "expr": "irate(node_disk_reads_completed_total[5m])",
+          "legendFormat": "{{instance}} {{device}} reads",
+          "refId": "A"
+        },
+        {
+          "expr": "irate(node_disk_writes_completed_total[5m])",
+          "legendFormat": "{{instance}} {{device}} writes",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Network Throughput (Bytes/sec)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "PROMDS"},
+      "fieldConfig": {"defaults": {"unit": "Bps"}},
+      "targets": [
+        {
+          "expr": "sum by (instance, device) (irate(node_network_receive_bytes_total{device!~\"lo\"}[5m]))",
+          "legendFormat": "{{instance}} {{device}} RX",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (instance, device) (irate(node_network_transmit_bytes_total{device!~\"lo\"}[5m]))",
+          "legendFormat": "{{instance}} {{device}} TX",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["devops", "disk", "network"],
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "PROMDS"},
+        "query": "label_values(up, instance)",
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2
+      }
+    ]
+  },
+  "time": {"from": "now-6h", "to": "now"},
+  "title": "Disk & Network Overview",
+  "uid": "disk-net-overview",
+  "version": 1
+}
