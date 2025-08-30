@@ -82,6 +82,61 @@ services:
       - elasticsearch
     restart: unless-stopped
 
+zabbix-db:
+    image: postgres:14-alpine
+    container_name: zabbix-db
+    environment:
+      - POSTGRES_DB=zabbix
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix
+    volumes:
+      - zabbix-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:6.4-alpine
+    container_name: zabbix-server
+    depends_on:
+      - zabbix-db
+    ports:
+      - "10051:10051"
+    volumes:
+      - ../zabbix/server_conf/zabbix_server.conf:/etc/zabbix/zabbix_server.conf
+    environment:
+      - DB_SERVER_HOST=zabbix-db
+      - POSTGRES_DB=zabbix
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix
+    restart: unless-stopped
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:6.4-alpine
+    container_name: zabbix-web
+    depends_on:
+      - zabbix-server
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_SERVER_HOST=zabbix-db
+      - POSTGRES_DB=zabbix
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix
+      - ZBX_SERVER_HOST=zabbix-server
+    restart: unless-stopped
+
+  zabbix-agent:
+    image: zabbix/zabbix-agent2:6.4-alpine
+    container_name: zabbix-agent
+    depends_on:
+      - zabbix-server
+    volumes:
+      - ../zabbix/agent_conf/zabbix_agent2.conf:/etc/zabbix/zabbix_agent2.conf
+    environment:
+      - ZBX_SERVER_HOST=zabbix-server
+    restart: unless-stopped
+
 volumes:
   esdata:
+    driver: local
+  zabbix-db-data:
     driver: local
