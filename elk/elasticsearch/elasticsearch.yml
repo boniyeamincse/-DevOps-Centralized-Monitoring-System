@@ -1,0 +1,21 @@
+# Minimal single-node config (good for lab/dev). For cluster, set discovery.seed_hosts & cluster.initial_master_nodes.
+cluster.name: devops-monitoring
+node.name: es01
+node.roles: [ data, master, ingest ]
+path.data: /usr/share/elasticsearch/data
+path.logs: /usr/share/elasticsearch/logs
+
+# Networking
+network.host: 0.0.0.0
+http.port: 9200
+transport.port: 9300
+
+# Single-node discovery
+discovery.type: single-node
+
+# Security (enable in prod)
+xpack.security.enabled: false
+xpack.security.transport.ssl.enabled: false
+
+# Performance niceties (optional)
+indices.memory.index_buffer_size: 20%

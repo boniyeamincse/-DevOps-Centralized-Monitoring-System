@@ -1,77 +1,48 @@
 #!/usr/bin/env bash
-# DevOps Monitoring – Update Dashboards
-# This script uploads all JSON dashboards from the grafana/dashboards directory to Grafana.
-
+# Push all Grafana JSON dashboards via API
 set -euo pipefail
 
-# --- Configuration ---
-# Set the Grafana URL and API Key here or pass them as environment variables.
 GRAFANA_URL="${GRAFANA_URL:-http://localhost:3000}"
-GRAFANA_API_KEY="${GRAFANA_API_KEY:-}" # Create an API key in the Grafana UI
+GRAFANA_USER="${GRAFANA_USER:-admin}"
+GRAFANA_PASS="${GRAFANA_PASS:-admin}"
+DASH_DIR="${DASH_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../grafana/dashboards" && pwd)}"
+FOLDER_UID="${FOLDER_UID:-devops-monitoring}"
+FOLDER_TITLE="${FOLDER_TITLE:-DevOps Monitoring}"
 
-DASHBOARDS_DIR="../grafana/dashboards"
-
-# --- Functions ---
-
-function check_deps() {
-  if ! command -v jq &> /dev/null; then
-    echo "Error: jq is not installed. Please install it to continue." >&2
-    exit 1
-  fi
-  if ! command -v curl &> /dev/null; then
-    echo "Error: curl is not installed. Please install it to continue." >&2
-    exit 1
-  fi
+auth() {
+  echo -n "${GRAFANA_USER}:${GRAFANA_PASS}"
 }
 
-function upload_dashboard() {
-  local dashboard_file="$1"
-  local dashboard_json
-
-  echo "Processing dashboard: ${dashboard_file}"
-
-  # Prepare the JSON payload for the Grafana API
-  dashboard_json=$(jq -c '.' "${dashboard_file}")
-  payload="{\"dashboard\":${dashboard_json}, \"overwrite\": true}"
-
-  # Upload the dashboard to Grafana
-  response=$(curl -s -w "%{http_code}" -X POST -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ${GRAFANA_API_KEY}" \
-    -d "${payload}" "${GRAFANA_URL}/api/dashboards/db")
-
-  http_code="${response: -3}"
-
-  if [[ "${http_code}" -eq 200 ]]; then
-    echo "Dashboard uploaded successfully."
+ensure_folder() {
+  # Create folder if not exists
+  if ! curl -fsS -u "$(auth)" "${GRAFANA_URL}/api/folders/${FOLDER_UID}" >/dev/null 2>&1; then
+    echo "==> Creating folder '${FOLDER_TITLE}' (uid: ${FOLDER_UID})"
+    curl -fsS -u "$(auth)" -H "Content-Type: application/json" \
+      -X POST "${GRAFANA_URL}/api/folders" \
+      -d "{\"uid\":\"${FOLDER_UID}\",\"title\":\"${FOLDER_TITLE}\"}" >/dev/null
   else
-    echo "Error uploading dashboard. HTTP status code: ${http_code}"
-    echo "Response: ${response::-3}"
-    return 1
+    echo "==> Folder exists: ${FOLDER_UID}"
   fi
 }
 
-# --- Main ---
+post_dashboard() {
+  local file="$1"
+  echo "==> Importing: $(basename "$file")"
+  local payload
+  payload=$(jq -c --arg folderUid "$FOLDER_UID" '. * { "overwrite": true, "folderUid": $folderUid }' "$file")
+  curl -fsS -u "$(auth)" -H "Content-Type: application/json" \
+    -X POST "${GRAFANA_URL}/api/dashboards/db" \
+    -d "{\"dashboard\": ${payload}, \"overwrite\": true, \"folderUid\": \"${FOLDER_UID}\"}" >/dev/null
+}
 
-function main() {
-  check_deps
-
-  if [[ -z "${GRAFANA_API_KEY}" ]]; then
-    echo "Error: GRAFANA_API_KEY is not set. Please create an API key in Grafana and set the environment variable." >&2
-    exit 1
-  fi
-
-  if [[ ! -d "${DASHBOARDS_DIR}" ]]; then
-    echo "Error: Dashboards directory not found at ${DASHBOARDS_DIR}" >&2
-    exit 1
-  fi
-
-  for dashboard_file in "${DASHBOARDS_DIR}"/*.json; do
-    if [[ -f "${dashboard_file}" ]]; then
-      upload_dashboard "${dashboard_file}"
-    fi
+main() {
+  command -v jq >/dev/null || { echo "Please install 'jq'."; exit 1; }
+  ensure_folder
+  shopt -s nullglob
+  for f in "${DASH_DIR}"/*.json; do
+    post_dashboard "$f"
   done
-
-  echo "All dashboards have been processed."
+  echo "==> Done. Dashboards uploaded to folder '${FOLDER_TITLE}'."
 }
 
 main "$@"

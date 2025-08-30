@@ -1,5 +1,8 @@
-# Use the official Elasticsearch image as a base
-FROM elasticsearch:8.10.2
-
-# Expose the Elasticsearch ports
-EXPOSE 9200 9300
+FROM docker.elastic.co/elasticsearch/elasticsearch:8.14.0
+ENV TZ=Asia/Dhaka
+# Drop in your config
+COPY elk/elasticsearch/elasticsearch.yml /usr/share/elasticsearch/config/elasticsearch.yml
+# Ensure correct ownership (image runs as elasticsearch user)
+USER root
+RUN chown elasticsearch:elasticsearch /usr/share/elasticsearch/config/elasticsearch.yml
+USER elasticsearch

@@ -1,0 +1,18 @@
+# List of Linux Node Exporter endpoints (default port 9100).
+# Replace sample IPs/hosts with your servers. You can add labels for env, role, site, etc.
+- targets:
+    - 192.168.10.11:9100
+    - 192.168.10.12:9100
+    - 192.168.10.13:9100
+  labels:
+    os: linux
+    env: prod
+    role: app
+
+- targets:
+    - 192.168.20.21:9100
+    - 192.168.20.22:9100
+  labels:
+    os: linux
+    env: staging
+    role: db

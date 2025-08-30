@@ -1,0 +1,16 @@
+# List of Windows Exporter endpoints (default port 9182).
+# Replace sample IPs/hosts with your servers. Add labels to organize by env/role/site.
+- targets:
+    - 10.0.0.31:9182
+    - 10.0.0.32:9182
+  labels:
+    os: windows
+    env: prod
+    role: iis
+
+- targets:
+    - 10.0.1.41:9182
+  labels:
+    os: windows
+    env: staging
+    role: ad

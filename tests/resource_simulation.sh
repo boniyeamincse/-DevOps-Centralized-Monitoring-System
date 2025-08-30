@@ -1,99 +1,99 @@
 #!/usr/bin/env bash
-# DevOps Monitoring – Resource Simulation
-# This script simulates high CPU or memory usage to test alerting rules.
-
+# Safely simulate resource pressure to test alerts/dashboards.
+# Requires: bash; optional: stress-ng (preferred). Falls back to busy CPU/mem loops.
+#
+# Usage:
+#   sudo ./resource_simulation.sh cpu --workers 4 --duration 120
+#   sudo ./resource_simulation.sh mem --size 2G --duration 120
+#   sudo ./resource_simulation.sh io  --workers 2 --duration 60
+#   sudo ./resource_simulation.sh net --iface eth0 --rate 100M --duration 60   (requires iperf3/nping if available)
+#
 set -euo pipefail
 
-# --- Functions ---
+ACTION="${1:-cpu}"
+shift || true
 
-function simulate_cpu() {
-  local duration_seconds="$1"
-  local num_cores
-  num_cores=$(nproc)
+DURATION=120
+WORKERS="$(nproc || echo 2)"
+SIZE="1G"
+IFACE=""
+RATE="50M"
 
-  echo "Simulating high CPU usage on ${num_cores} cores for ${duration_seconds} seconds..."
+# Parse simple flags
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --duration) DURATION="${2:-120}"; shift 2 ;;
+    --workers)  WORKERS="${2:-2}";   shift 2 ;;
+    --size)     SIZE="${2:-1G}";     shift 2 ;;
+    --iface)    IFACE="${2:-}";      shift 2 ;;
+    --rate)     RATE="${2:-50M}";    shift 2 ;;
+    *) echo "Unknown option: $1"; exit 1 ;;
+  esac
+done
 
-  for i in $(seq 1 "${num_cores}"); do
-    dd if=/dev/zero bs=1M count=1024 | sha256sum > /dev/null &
-  done
+have() { command -v "$1" >/dev/null 2>&1; }
 
-  sleep "${duration_seconds}"
-
-  echo "Stopping CPU simulation..."
-  killall dd sha256sum
+finish() {
+  echo "==> Cleaning up..."
+  pkill -f 'yes > /dev/null' 2>/dev/null || true
+  pkill -f 'dd if=/dev/zero'  2>/dev/null || true
+  pkill -f 'stress-ng'        2>/dev/null || true
 }
+trap finish EXIT
 
-function simulate_memory() {
-  local memory_mb="$1"
-  local duration_seconds="$2"
+echo "==> Simulation: ${ACTION} for ${DURATION}s"
 
-  echo "Simulating high memory usage (${memory_mb}MB) for ${duration_seconds} seconds..."
-
-  # Create a simple C program to allocate memory
-  cat > /tmp/alloc.c <<EOF
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        printf("Usage: %s <memory_in_mb>\n", argv[0]);
-        return 1;
-    }
-
-    long long memory_to_alloc = atoll(argv[1]) * 1024 * 1024;
-    char *buffer = malloc(memory_to_alloc);
-
-    if (buffer == NULL) {
-        printf("Failed to allocate memory.\n");
-        return 1;
-    }
-
-    memset(buffer, 1, memory_to_alloc);
-    printf("Allocated %lld bytes of memory. Sleeping...\n", memory_to_alloc);
-    sleep(1000000);
-
-    return 0;
-}
-EOF
-
-  gcc /tmp/alloc.c -o /tmp/alloc
-  /tmp/alloc "${memory_mb}" &
-  alloc_pid=$!
-
-  sleep "${duration_seconds}"
-
-  echo "Stopping memory simulation..."
-  kill "${alloc_pid}"
-  rm /tmp/alloc /tmp/alloc.c
-}
-
-# --- Main ---
-
-function main() {
-  if [[ "$#" -lt 2 ]]; then
-    echo "Usage: $0 [cpu|memory] [options]"
-    echo "  cpu <duration_seconds>"
-    echo "  memory <memory_mb> <duration_seconds>"
-    exit 1
+if [[ "$ACTION" == "cpu" ]]; then
+  if have stress-ng; then
+    echo "Using stress-ng for CPU load with ${WORKERS} workers"
+    stress-ng --cpu "${WORKERS}" --timeout "${DURATION}" --metrics-brief
+  else
+    echo "Fallback: spawning ${WORKERS} busy loops"
+    for _ in $(seq 1 "$WORKERS"); do
+      bash -c 'yes > /dev/null' &
+    done
+    sleep "${DURATION}"
   fi
 
-  resource="$1"
-  shift
+elif [[ "$ACTION" == "mem" ]]; then
+  if have stress-ng; then
+    echo "Using stress-ng to allocate ${SIZE}"
+    stress-ng --vm 1 --vm-bytes "${SIZE}" --timeout "${DURATION}" --metrics-brief
+  else
+    echo "Fallback: allocating memory via dd for ${DURATION}s"
+    tmpfile="$(mktemp)"
+    dd if=/dev/zero of="$tmpfile" bs=1M count=$(( ${SIZE%G} * 1024 )) status=none || true
+    sleep "${DURATION}"
+    rm -f "$tmpfile"
+  fi
 
-  case "${resource}" in
-    cpu)
-      simulate_cpu "$@"
-      ;;
-    memory)
-      simulate_memory "$@"
-      ;;
-    *)
-      echo "Invalid resource type: ${resource}"
-      exit 1
-      ;;
-  esac
-}
+elif [[ "$ACTION" == "io" ]]; then
+  if have stress-ng; then
+    echo "Using stress-ng for IO with ${WORKERS} workers"
+    stress-ng --hdd "${WORKERS}" --timeout "${DURATION}" --metrics-brief
+  else
+    echo "Fallback: writing zeros to temp files"
+    for i in $(seq 1 "$WORKERS"); do
+      tmpfile="$(mktemp)"
+      (dd if=/dev/zero of="$tmpfile" bs=4M count=512 status=none; sleep "${DURATION}"; rm -f "$tmpfile") &
+    done
+    sleep "${DURATION}"
+  fi
 
-main "$@"
+elif [[ "$ACTION" == "net" ]]; then
+  echo "Network simulation requires extra tools (iperf3 or nping)."
+  if have iperf3; then
+    echo "Run a server elsewhere: 'iperf3 -s'. Here we run client load."
+    iperf3 -c 127.0.0.1 -t "${DURATION}" -b "${RATE}" || true
+  elif have nping; then
+    nping --udp -c 0 --rate "${RATE}" --data-length 1200 127.0.0.1 --count "$(( DURATION * 10 ))" || true
+  else
+    echo "No iperf3/nping found. Skipping network simulation."
+  fi
+
+else
+  echo "Usage: $0 {cpu|mem|io|net} [--duration SEC] [--workers N] [--size 1G] [--iface eth0] [--rate 50M]"
+  exit 1
+fi
+
+echo "==> Simulation complete."

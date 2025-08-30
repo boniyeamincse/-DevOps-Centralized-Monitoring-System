@@ -1,142 +1,124 @@
-version: '3.8'
+# all server will be    restart: unless-stopped
+
+version: "3.9"
+
+networks:
+  devops-net:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  elastic_data:
+  logstash_pipeline:
+  kibana_data:
 
 services:
+  # ------------ Prometheus ------------
   prometheus:
     build:
-      context: .
-      dockerfile: Dockerfiles/prometheus.Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfiles/prometheus.Dockerfile
     container_name: prometheus
+    restart: unless-stopped
+    networks: [devops-net]
     ports:
       - "9090:9090"
     volumes:
-      - ../prometheus:/etc/prometheus/
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../prometheus/rules:/etc/prometheus/rules:ro
+      - ../prometheus/targets:/etc/prometheus/targets:ro
+      - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-    restart: unless-stopped
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-admin-api
+      - --web.enable-lifecycle
 
+  # ------------ Alertmanager ------------
   alertmanager:
-    build:
-      context: .
-      dockerfile: Dockerfiles/alertmanager.Dockerfile
+    image: prom/alertmanager:latest
     container_name: alertmanager
+    restart: unless-stopped
+    networks: [devops-net]
     ports:
       - "9093:9093"
     volumes:
-      - ../prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-      - ../prometheus/rules:/etc/alertmanager/rules
-    env_file:
-      - ../.env
-    restart: unless-stopped
+      - ./alertmanager:/etc/alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
 
+  # ------------ Grafana ------------
   grafana:
     build:
-      context: .
-      dockerfile: Dockerfiles/grafana.Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfiles/grafana.Dockerfile
     container_name: grafana
+    restart: unless-stopped
+    networks: [devops-net]
     ports:
       - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      # Provisioning paths set inside Dockerfile
     volumes:
-      - ../grafana/provisioning/:/etc/grafana/provisioning/
-      - ../grafana/dashboards/:/var/lib/grafana/dashboards/
-    restart: unless-stopped
+      - grafana_data:/var/lib/grafana
+      # Dashboards & provisioning are copied in image; you can also bind-mount if you prefer live editing:
+      # - ../grafana/dashboards:/etc/grafana/provisioning/dashboards
+      # - ../grafana/provisioning:/etc/grafana/provisioning
 
+  # ------------ Elasticsearch ------------
   elasticsearch:
     build:
-      context: .
-      dockerfile: Dockerfiles/elasticsearch.Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfiles/elasticsearch.Dockerfile
     container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    restart: unless-stopped
+    networks: [devops-net]
     ports:
       - "9200:9200"
       - "9300:9300"
+    environment:
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
     volumes:
-      - esdata:/usr/share/elasticsearch/data
-    restart: unless-stopped
+      - elastic_data:/usr/share/elasticsearch/data
 
+  # ------------ Logstash ------------
+  logstash:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfiles/logstash.Dockerfile
+    container_name: logstash
+    restart: unless-stopped
+    networks: [devops-net]
+    ports:
+      - "5044:5044"    # Beats input
+      - "9600:9600"    # Monitoring API
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ../elk/logstash/pipelines.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+
+  # ------------ Kibana ------------
   kibana:
     build:
-      context: .
-      dockerfile: Dockerfiles/kibana.Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfiles/kibana.Dockerfile
     container_name: kibana
+    restart: unless-stopped
+    networks: [devops-net]
     ports:
       - "5601:5601"
     depends_on:
       - elasticsearch
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    restart: unless-stopped
-
-  logstash:
-    build:
-      context: .
-      dockerfile: Dockerfiles/logstash.Dockerfile
-    container_name: logstash
-    ports:
-      - "5044:5044"
-      - "9600:9600"
-    volumes:
-      - ../elk/logstash/pipelines.conf:/usr/share/logstash/pipeline/logstash.conf
-    depends_on:
-      - elasticsearch
-    restart: unless-stopped
-
-zabbix-db:
-    image: postgres:14-alpine
-    container_name: zabbix-db
-    environment:
-      - POSTGRES_DB=zabbix
-      - POSTGRES_USER=zabbix
-      - POSTGRES_PASSWORD=zabbix
-    volumes:
-      - zabbix-db-data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  zabbix-server:
-    image: zabbix/zabbix-server-pgsql:6.4-alpine
-    container_name: zabbix-server
-    depends_on:
-      - zabbix-db
-    ports:
-      - "10051:10051"
-    volumes:
-      - ../zabbix/server_conf/zabbix_server.conf:/etc/zabbix/zabbix_server.conf
-    environment:
-      - DB_SERVER_HOST=zabbix-db
-      - POSTGRES_DB=zabbix
-      - POSTGRES_USER=zabbix
-      - POSTGRES_PASSWORD=zabbix
-    restart: unless-stopped
-
-  zabbix-web:
-    image: zabbix/zabbix-web-nginx-pgsql:6.4-alpine
-    container_name: zabbix-web
-    depends_on:
-      - zabbix-server
-    ports:
-      - "8080:8080"
-    environment:
-      - DB_SERVER_HOST=zabbix-db
-      - POSTGRES_DB=zabbix
-      - POSTGRES_USER=zabbix
-      - POSTGRES_PASSWORD=zabbix
-      - ZBX_SERVER_HOST=zabbix-server
-    restart: unless-stopped
-
-  zabbix-agent:
-    image: zabbix/zabbix-agent2:6.4-alpine
-    container_name: zabbix-agent
-    depends_on:
-      - zabbix-server
-    volumes:
-      - ../zabbix/agent_conf/zabbix_agent2.conf:/etc/zabbix/zabbix_agent2.conf
-    environment:
-      - ZBX_SERVER_HOST=zabbix-server
-    restart: unless-stopped
-
-volumes:
-  esdata:
-    driver: local
-  zabbix-db-data:
-    driver: local

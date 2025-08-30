@@ -1,0 +1,108 @@
+{
+  "annotations": {"list": [{"builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"}, "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard"}]},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Avg CPU Usage (All Linux)",
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "PROMDS"},
+      "options": {"reduceOptions": {"calcs": ["mean"], "fields": "", "values": false}, "orientation": "horizontal", "textMode": "auto", "colorMode": "value"},
+      "targets": [
+        {
+          "expr": "(100 - avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m]))*100)",
+          "legendFormat": "Linux avg",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Avg CPU Usage (All Windows)",
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "PROMDS"},
+      "options": {"reduceOptions": {"calcs": ["mean"], "fields": "", "values": false}, "orientation": "horizontal", "textMode": "auto", "colorMode": "value"},
+      "targets": [
+        {
+          "expr": "(100 - avg(irate(windows_cpu_time_total{mode=\"idle\"}[5m]))*100)",
+          "legendFormat": "Windows avg",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU Usage by Instance (Linux)",
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "PROMDS"},
+      "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "right"}},
+      "targets": [
+        {
+          "expr": "(100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m]))*100))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU Usage by Instance (Windows)",
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "PROMDS"},
+      "fieldConfig": {"defaults": {"unit": "percent"}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "right"}},
+      "targets": [
+        {
+          "expr": "(100 - (avg by (instance) (irate(windows_cpu_time_total{mode=\"idle\"}[5m]))*100))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Linux Load Average (5m) per vCPU",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 14},
+      "datasource": {"type": "prometheus", "uid": "PROMDS"},
+      "fieldConfig": {"defaults": {"unit": "none"}, "overrides": []},
+      "targets": [
+        {
+          "expr": "node_load5 / count without (cpu,mode) (node_cpu_seconds_total{mode=\"system\"})",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["devops", "cpu"],
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "PROMDS"},
+        "query": "label_values(up, instance)",
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2
+      }
+    ]
+  },
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {},
+  "timezone": "",
+  "title": "CPU Overview",
+  "uid": "cpu-overview",
+  "version": 1,
+  "weekStart": ""
+}
